@@ -1,4 +1,6 @@
-# telemeter
+# 2023年えひめ共同気球実験
+
+[テレメトリ・コマンド運用](https://wasa-rockoon.github.io/launch2023/)
 
 ## Project setup
 ```
