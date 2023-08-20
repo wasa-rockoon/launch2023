@@ -154,7 +154,7 @@ import axios from 'axios';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css'
 import { System, Flight, api } from '../library/api'
-import { Packet } from '../library/packet'
+import { Packet } from 'wccp'
 import LoginModal from '../components/LoginModal'
 
 
@@ -219,7 +219,8 @@ const onNewFlight = async () => {
   console.log(newFlight.name)
   newFlight.dialog = false
 
-  const flight = await api.postFlight(system.value.id, newFlight.name, true)
+  const flight = await api.postFlight(system.value.id, newFlight.name,
+                                      new Date())
   console.log('new flight', flight)
 
   if (system.value?.activeFlight)

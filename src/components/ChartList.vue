@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, Ref, defineProps, ShallowRef } from 'vue'
+import { watch, ref, inject, Ref, defineProps, ShallowRef } from 'vue'
 import {
   Chart as ChartJS,
   Title,
@@ -35,9 +35,12 @@ const props = defineProps(['range'])
 
 const maxPoints = 100
 
-const charts = computed(() => {
+const charts = ref([])
+
+watch(datastore, () => {
   if (!datastore.value) return []
-  return settings.charts.map(config => {
+
+  charts.value = settings.charts.map(config => {
     return {
       config: config,
       data: {

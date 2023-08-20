@@ -57,17 +57,22 @@ const markers = computed(() => {
   })
 })
 
-const paths = computed(() => {
-  if (!datastore.value) return []
-  return settings.mapPaths.map(path => {
+let last_update_t = undefined;
+const paths = ref([]);
+
+watch(datastore, () => {
+  if (!datastore.value) return
+
+  paths.value = settings.mapPaths.flatMap(path => {
     const ds = datastore.value.getBy(path.from, path.id)
     const lats = ds.getValues(path.lat)
     const lons = ds.getValues(path.lon)
-    return {
+    if (lats.length == 0 || lons.length == 0) return []
+    return [{
       latlons: lats.map((l, i) => [l, lons[i]]),
       name: path.name,
       color: path.color,
-    }
+    }]
   })
 })
 

@@ -35,7 +35,8 @@
                         icon="mdi-clock-alert-outline"></v-icon>
                 <v-icon v-else icon="mdi-check" color="primary"></v-icon>
               </template>
-              <v-list-item-title>{{p.format.name}}</v-list-item-title>
+              <v-list-item-title v-if="p.format">{{p.format.name}}
+              </v-list-item-title>
               <v-list-item-subtitle v-if="p.packet">
                 {{datastore.showT(p.t)}} #{{p.count}} {{p.source}}
               </v-list-item-subtitle>

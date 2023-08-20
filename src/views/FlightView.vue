@@ -18,21 +18,11 @@
             <v-row class="h-100 ma-0">
               <v-col class="pa-3 pr-1">
                 <v-row class="w-100 pb-4 ma-0">
-                  <VideoPlayer v-if="flight.data?.videos?.at(0)"
-                               :video="flight.data.videos[0]"
-                               :time="currentTime"/>
-                </v-row>
-                <v-row class="w-100 pb-4 ma-0">
                   <FlightMap :time="currentTime"/>
                 </v-row>
               </v-col>
               <v-col class="h-100 pa-3 pr-1"
                      style="display: flex; flex-direction: column;">
-                <v-row class="w-100 pb-4 ma-0" style="flex-grow: 0">
-                  <VideoPlayer v-if="flight.data?.videos?.at(1)"
-                               :video="flight.data.videos[1]"
-                               :time="currentTime"/>
-                </v-row>
                 <v-row class="overflow-y-auto w-100 ma-0"
                        style="flex-grow: 1; padding-bottom: 50px">
                   <ChartList :range="chartRange" />
@@ -51,7 +41,7 @@
     </v-main>
 
     <v-footer fixed elevation="20">
-      <FlightTimeline v-on:change-chart-range="onChangeChartRange"
+      <FlightTimeline :events="events"
                       v-on:change-time="onChangeTime" />
     </v-footer>
   </div>
@@ -64,8 +54,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import axios from 'axios'
 import { Flight, System, api } from '../library/api'
 import { DataStore } from '../library/datastore'
-import '@/library/packet'
-import { Packet } from '../library/packet'
+import { Packet } from 'wccp'
 import LoginModal from '../components/LoginModal'
 import FlightSettings from '../components/FlightSettings'
 import FlightTimeline from '../components/FlightTimeline'
@@ -90,6 +79,14 @@ const route = useRoute()
 const router = useRouter()
 
 const instance = getCurrentInstance()
+
+const events = computed(() =>
+  datastore.value &&
+  [{
+  name: 'Release',
+  time: datastore.value?.launchTime
+  }] || []
+)
 
 onMounted(async () => {
   try {

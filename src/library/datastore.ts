@@ -1,13 +1,13 @@
 import * as dfd from "danfojs"
 
 import { Flight } from './api'
-import { Packet, Char } from './packet'
+import { Packet, Char } from 'wccp'
 import * as settings from '../settings'
 
 export class DataStore {
     flight: Flight
 
-    dataseries: { [from: Char]: { [id: Char]: DataSeries } }
+    dataseries: { [from: number]: { [id: Char]: DataSeries } }
 
     get startTime(): Date { return this.flight.startTime }
     get launchTime(): Date { return this.flight.launchTime }
@@ -51,7 +51,7 @@ export class DataStore {
         this.dataseries = {}
     }
 
-    getBy(from: Char, id: Char): DataSeries {
+    getBy(from: number, id: Char): DataSeries {
         if (!this.dataseries[from]) this.dataseries[from] = {}
         if (!this.dataseries[from][id])
             this.dataseries[from][id] = new DataSeries(this, from, id)
@@ -59,7 +59,7 @@ export class DataStore {
     }
 
     addPackets(packets: { packet: Packet, time: Date, source: string }[]) {
-        const packetsByFromAndId: {[from: Char]: {[id: Char]:
+        const packetsByFromAndId: {[from: number]: {[id: Char]:
                                                   { packet: Packet,
                                                     time: Date,
                                                     source: string }[]}} = {}
@@ -71,7 +71,8 @@ export class DataStore {
                 packetsByFromAndId[p.packet.from][p.packet.id] = []
             packetsByFromAndId[p.packet.from][p.packet.id].push(p)
         }
-        for (const [from, packetsById] of Object.entries(packetsByFromAndId)) {
+        for (const [from_, packetsById] of Object.entries(packetsByFromAndId)) {
+            const from = Number(from_)
             if (!this.dataseries[from]) this.dataseries[from] = {}
 
             for (const [id, packets] of Object.entries(packetsById)) {
@@ -126,7 +127,7 @@ export interface PacketInfo {
 
 export class DataSeries {
     datastore: DataStore
-    from: Char
+    from: number
     id: Char
     format: any
 
@@ -168,7 +169,7 @@ export class DataSeries {
     }
 
 
-    constructor(datastore: DataStore, from: Char, id: Char) {
+    constructor(datastore: DataStore, from: number, id: Char) {
         this.datastore = datastore
         this.from = from
         this.id = id
@@ -289,6 +290,7 @@ export class DataSeries {
                 this.times.push(...packets.slice(i).map(p =>
                     this.datastore.time2t(new Date(p.unixTime))))
                 for (const type of Object.keys(this.format?.entries ?? {})) {
+                    if (!newValues[type]) continue;
                     newValues[type].forEach((values, index) => {
                         this.values[type][index].push(...values.slice(i))
                     })
@@ -299,6 +301,7 @@ export class DataSeries {
             this.times.splice(insertAt + 1, 0,
                               this.datastore.time2t(new Date(packets[i].unixTime)))
             for (const type of Object.keys(this.format?.entries ?? {})) {
+                if (!newValues[type]) continue;
                 newValues[type].forEach((values, index) => {
                     this.values[type][index].splice(insertAt + 1, 0, values[i])
                 })
@@ -312,6 +315,8 @@ export class DataSeries {
 
     searchIndex(unixTime: number): number {
         if (this.data.length == 0) return 0
+
+        if (!this.data[this.cursor]) this.cursor = 0;
 
         let step = 0.5
         if (unixTime < this.data[this.cursor].unixTime) {

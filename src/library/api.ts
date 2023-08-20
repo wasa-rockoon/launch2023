@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as settings from '@/settings'
-import { Packet } from '@/library/packet'
+import { Packet } from 'wccp'
 
 const API_URL =
     process.env.NODE_ENV == 'development'

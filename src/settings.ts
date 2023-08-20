@@ -1,13 +1,20 @@
 
-export const systemId = "teres1"
+export const systemId = "launch2023"
 export const apiEndpoint = "https://telemeter.fujiy.dev/api"
 export const wsEndpoint = "wss://telemeter.fujiy.dev/api"
-export const apiEndpointDev = "http://localhost:8888/api"
-export const wsEndpointDev = "ws://localhost:8888/api"
-// export const apiEndpointDev = "https://telemeter.fujiy.dev/api"
-// export const wsEndpointDev =  "wss://telemeter.fujiy.dev/api"
+// export const apiEndpointDev = "http://localhost:8888/api"
+// export const wsEndpointDev = "ws://localhost:8888/api"
+export const apiEndpointDev = "https://telemeter.fujiy.dev/api"
+export const wsEndpointDev =  "wss://telemeter.fujiy.dev/api"
 
-export const basePath = "/TERES"
+export const basePath = "/launch2023"
+
+
+const ROCKET = 1
+const LAUNCHER = 2
+const GS1 = 6
+const GS2 = 5
+
 
 function formatLatOrLon(v: number): string {
     const degrees = Math.trunc(v / 10000000)
@@ -72,20 +79,39 @@ export const packetFormats : {[id: string] : any} = {
             },
             'S': {
                 name: 'Satellites',
-                datatype: 'int32',
+                datatype: 'uint8',
                 warning: (n: number) => n < 4 && "4 satellites needed",
             },
         },
-        timeout: 1.0,
+        timeout: 10.0,
+    },
+    'B': {
+        name: 'Battery',
+        entries: {
+            'P': { name: 'Vpp', datatype: 'float16', unit: 'V' },
+            'C': { name: 'Vcc', datatype: 'float16', unit: 'V' },
+            'D': { name: 'Vdd', datatype: 'float16', unit: 'V' },
+            'c': { name: 'Vcc', datatype: 'float16', unit: 'A' },
+            'd': { name: 'Vdd', datatype: 'float16', unit: 'A' },
+        },
+        timeout: 10.0,
     },
     'C': {
+        name: 'Command',
+        entries: {
+            'R': { name: 'RSSI', datatype: 'uint8', unit: 'dB' },
+            'C': { name: 'Count', datatype: 'uint32' },
+        },
+        timeout: 10.0,
+    },
+    'W': {
         name: 'TWELITE',
         entries: {
             'Q': { name: 'LQI', datatype: 'uint8' },
             'S': { name: 'Sent',   datatype: 'uint32' },
             'R': { name: 'Received',   datatype: 'uint32' },
         },
-        timeout: 1.0,
+        timeout: 10.0,
     },
     'H': {
         name: 'Air',
@@ -103,7 +129,7 @@ export const packetFormats : {[id: string] : any} = {
         },
         timeout: 1.0,
     },
-    'l': {
+    'L': {
         name: 'Logger',
         entries: {
             't': { name: 'Time', unit: 's', datatype: 'uint32' },
@@ -117,14 +143,67 @@ export const packetFormats : {[id: string] : any} = {
         timeout: 1.0,
     },
 
+    'r': {
+        name: 'Recovery',
+        entries: {
+            'O': {
+                name: 'Longitude',
+                unit: '°',
+                datatype: 'int32',
+                format: formatLatOrLon,
+            },
+            'A': {
+                name: 'Latitude',
+                unit: '°',
+                datatype: 'int32',
+                format: formatLatOrLon,
+            },
+            'H': {
+                name: 'GPS Alt',
+                unit: 'm',
+                datatype: 'float32'
+            },
+            'h': {
+                name: 'Pressure Alt',
+                unit: 'm',
+                datatype: 'float32'
+            },
+            'c': {
+                name: 'Command RSSI',
+                unit: 'db',
+                datatype: 'uint8'
+            },
+            'r': {
+                name: 'Rocket Tlm RSSI',
+                unit: 'db',
+                datatype: 'uint8'
+            },
+        },
+        timeout: 60.0,
+    },
 }
 
 export const packetList = [
     {
-        from: 'R',
+        from: ROCKET,
         name: 'Rocket',
-        ids: ['A', 'P', 'H', 'C', 'l']
-    }
+        ids: ['r', 'A', 'P', 'B', 'H', 'C', 'L']
+    },
+    {
+        from: LAUNCHER,
+        name: 'Launcher',
+        ids: ['r']
+    },
+    {
+        from: GS1,
+        name: 'GS1',
+        ids: ['P', 'B']
+    },
+    {
+        from: GS2,
+        name: 'GS2',
+        ids: ['P', 'B']
+    },
 ]
 
 export const charts = [
@@ -137,17 +216,36 @@ export const charts = [
         title: 'Accelaraion',
         y: [['R', 'A', 'A', 0], ['R', 'A', 'A', 1], ['R', 'A', 'A', 2]],
         yLabel: 'Accelaration [m/s²]',
-    }
+    },
+
 ]
 
 export const mapPaths = [
     {
-        from: 'R',
+        from: ROCKET,
         name: 'Rocket',
         id: 'P',
         lat: 'A',
         lon: 'O',
         color: '#4FC3F7',
+        markerColor: 'white',
+    },
+    {
+        from: GS1,
+        name: 'GS1',
+        id: 'P',
+        lat: 'A',
+        lon: 'O',
+        color: 'white',
+        markerColor: 'white',
+    },
+    {
+        from: GS2,
+        name: 'GS2',
+        id: 'P',
+        lat: 'A',
+        lon: 'O',
+        color: 'white',
         markerColor: 'white',
     },
 ]

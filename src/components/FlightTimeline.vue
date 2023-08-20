@@ -7,11 +7,11 @@
         </span>
       </v-col>
       <v-col align-self="start">
-        <vue-slider id="timeline-slider" v-model="slider" ref="sliderRef"
-                    :min="sliderMin" :max="sliderMax" :interval="0.001"
+        <vue-slider id="timeline-slider" v-model="currentT" ref="sliderRef"
+                    :min="min" :max="max" :interval="0.001"
                     :process="process" :marks="marks" :dot-options="dotOptions"
-                    :order="false" :enable-cross="true" :drag-on-click="true"
-                    :tooltip-placement="'top'" :tooltip-formatter="formatter"
+                    :drag-on-click="true"
+                    :tooltip-placement="'top'"
                     :dot-size="[10,10]" :duration="0"
                     :contained="true">
         </vue-slider>
@@ -30,31 +30,25 @@
 
 <script setup lang="ts">
 import { reactive, ref, onMounted, inject, computed, Ref, watch,
-         defineEmits, ShallowRef, triggerRef } from 'vue';
+         defineEmits, ShallowRef, triggerRef, defineProps } from 'vue';
 import VueSlider from 'vue-slider-component'
 import 'vue-slider-component/theme/default.css'
 import { DataStore } from '../library/datastore'
 
 const datastore = inject<ShallowRef<DataStore>>('datastore')
 
+const props = defineProps(['events'])
+
 const playing = ref(false)
-
 const toggle = ref(null)
-
 const sliderRef = ref(null)
+const currentT = ref(0)
+const min = ref(0)
+const max = ref(100)
 
-const slider = ref([])
-const currentT = computed(() => slider.value[1])
+const emit = defineEmits(['change-time'])
 
-const sliderMin = computed<number>(() => (datastore.value?.startT))
-const sliderMax = computed<number>(() => datastore.value?.endT
-                                         ?? datastore.value?.nowT)
-
-const emit = defineEmits(['change-chart-range', 'change-time'])
-
-const dotOptions = [{ tooltip: 'active' },
-                    { tooltip: 'none' },
-                    { tooltip: 'active' }, ]
+const dotOptions = { tooltip: 'active' }
 
 const marks = computed(() => {
   const m = {}
@@ -70,15 +64,20 @@ const marks = computed(() => {
       },
 
     }
-    m[Math.round(datastore.value.launchT).toString()] = {
-      label: 'Launch',
-      style: {
-        width: '8px',
-        height: '8px',
-        display: 'block',
-        backgroundColor: '#303030',
-        transform: 'translate(-2px, -2px)'
-      },
+    for (const event of props.events) {
+      const t = datastore.value.time2t(event.time)
+      if (t < min.value || max.value < t) continue
+      m[Math.round(t.toString())] ={
+        label: event.name,
+        style: {
+          width: '8px',
+          height: '8px',
+          display: 'block',
+          backgroundColor: '#303030',
+          transform: 'translate(-2px, -2px)'
+        },
+
+      }
     }
   }
   return m
@@ -93,13 +92,13 @@ const process = (dotPos: number) => {
            { backgroundColor: '#2196F3' }]]
 }
 
-const formatter = (t: number) => {
-  if (t == Math.min(slider.value[0], slider.value[2]))
-    return `Chart min: ${datastore.value?.showT(t)}`
-  else if (t == Math.max(slider.value[0], slider.value[2]))
-    return `Chart max: ${datastore.value?.showT(t)}`
-  else return ''
-}
+// const formatter = (t: number) => {
+//   if (t == Math.min(slider.value[0], slider.value[2]))
+//     return `Chart min: ${datastore.value?.showT(t)}`
+//   else if (t == Math.max(slider.value[0], slider.value[2]))
+//     return `Chart max: ${datastore.value?.showT(t)}`
+//   else return ''
+// }
 
 let prevTimestamp = null
 let liveT = null
@@ -107,10 +106,16 @@ let liveT = null
 const liveTimeline = (timestamp) => {
   if (prevTimestamp) {
     if (playing.value) {
-      liveT = slider.value[1] + (timestamp - prevTimestamp) / 1000.0
-      if (liveT > sliderMax.value) liveT = sliderMax.value
-      sliderRef.value.setValue([slider.value[0], liveT, slider.value[2]])
+      liveT = currentT.value + (timestamp - prevTimestamp) / 1000.0
+      if (liveT > max.value) liveT = max.value
+      sliderRef.value.setValue(liveT)
     }
+    if (datastore.value && !datastore.value.endT) {
+      max.value = datastore.value.nowT
+    }
+
+    if (currentT.value < min.value) sliderRef.value.setValue(min.value)
+    if (currentT.value > max.value) sliderRef.value.setValue(max.value)
   }
   prevTimestamp = timestamp
 
@@ -121,19 +126,15 @@ onMounted(() => {
   requestAnimationFrame(liveTimeline)
 })
 
-watch(slider, (cr, prev) => {
+watch(currentT, (cr, prev) => {
 
-  if (cr[1] != prev[1]) {
-    if (cr[1] != liveT) {
+  if (cr != prev) {
+    if (cr != liveT) {
       // playing.value = false
       // toggle.value = null
     }
     emit('change-time', datastore.value.t2time(currentT.value))
   }
-
-  if (cr[0] != prev[0] || cr[2] != prev[2])
-    emit('change-chart-range',
-        {min: Math.min(cr[0], cr[2]), max: Math.max(cr[0], cr[2])})
 })
 
 watch(toggle, (cr: number, prev: number) => {
@@ -143,8 +144,7 @@ watch(toggle, (cr: number, prev: number) => {
   else if (cr == 0) {
     playing.value = false
     toggle.value = null
-    sliderRef.value.setValue(
-      [slider.value[0], datastore.value.startT, slider.value[2]])
+    sliderRef.value.setValue(datastore.value.startT)
   }
   else if (cr == 1 && playing.value) {
     playing.value = false
@@ -152,27 +152,24 @@ watch(toggle, (cr: number, prev: number) => {
   }
   else if (cr == 1) playing.value = true
   else if (cr == 2) {
-    sliderRef.value.setValue(
-      [slider.value[0], datastore.value.endT ?? datastore.value.nowT,
-       slider.value[2]])
+    max.value = datastore.value.endT ?? datastore.value.nowT
+    sliderRef.value.setValue(datastore.value.endT ?? datastore.value.nowT)
     playing.value = true
   }
 })
 
 
 watch(datastore, (cr, prev) => {
+  min.value = cr.startT
+  max.value = cr.endT ?? cr.nowT
   if (!prev) {
-    // console.log(prev, sliderMin.value, sliderMax.value)
-    slider.value = [
-      sliderMin.value,
-      datastore.value.endTime ? 0 : sliderMax.value,
-      sliderMax.value]
+    currentT.value = datastore.value.endTime ? 0 : max.value
   }
 })
 
 const sliderPercent = (t: number) => {
-  const sliderRange = sliderMax.value - sliderMin.value
-  const p = (t - sliderMin.value) / sliderRange * 100.0
+  const range = max.value - min.value
+  const p = (t - min.value) / range * 100.0
   if (p < 0) return 0
   else if (p > 100) return 100
   else return p
