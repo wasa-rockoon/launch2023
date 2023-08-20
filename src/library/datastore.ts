@@ -278,7 +278,7 @@ export class DataSeries {
                     newValues[entry.type] =
                         new Array(f.index?.length ?? 1).fill(0).map(() => [])
                 }
-
+                if (!newValues[entry.type][index]) return;
                 newValues[entry.type][index].push(entry.formatNumber(f))
             })
         }
@@ -292,6 +292,7 @@ export class DataSeries {
                 for (const type of Object.keys(this.format?.entries ?? {})) {
                     if (!newValues[type]) continue;
                     newValues[type].forEach((values, index) => {
+                        if (!this.values[type][index]) return;
                         this.values[type][index].push(...values.slice(i))
                     })
                 }
