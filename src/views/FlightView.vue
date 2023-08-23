@@ -10,33 +10,63 @@
 
     <LoginModal :system="system" v-on:login="onLogin" />
 
+    <template v-slot:extension v-if="display.smAndDown.value" >
+      <v-tabs v-model="tab" fixed-tabs class="w-100">
+        <v-tab value="map">Map</v-tab>
+        <v-tab value="charts">Charts</v-tab>
+        <v-tab value="packets">Packets</v-tab>
+      </v-tabs>
+    </template>
+
     </v-app-bar>
     <v-main v-if="flight" class="h-100 overflow-hidden" >
-      <v-container class="ma-0 w-screen h-100">
-        <v-row class="h-100">
-          <v-container id="graphics-panel" class="ma-0 pa-0 h-100">
-            <v-row class="h-100 ma-0">
-              <v-col class="pa-3 pr-1">
-                <v-row class="w-100 pb-4 ma-0">
-                  <FlightMap :time="currentTime"/>
-                </v-row>
-              </v-col>
-              <v-col class="h-100 pa-3 pr-1"
-                     style="display: flex; flex-direction: column;">
-                <v-row class="overflow-y-auto w-100 ma-0"
-                       style="flex-grow: 1; padding-bottom: 50px">
-                  <ChartList :range="chartRange" />
-                </v-row>
-              </v-col>
-            </v-row>
-          </v-container>
-          <v-col id="packets-panel" class="overflow-y-auto h-100 pb-16">
-            <v-card>
-              <PacketList :time="currentTime"/>
-            </v-card>
-          </v-col>
-        </v-row>
-      </v-container>
+      <keep-alive class="h-100">
+        <v-container v-if="display.smAndDown.value" class="h-100 pa-0 pb-16">
+
+          <v-window v-model="tab" class="overflow-y-auto h-100 pa-3">
+            <v-window-item value="map">
+              <v-row class="w-100 pb-4 ma-0">
+                <FlightMap :time="currentTime"/>
+              </v-row>
+            </v-window-item>
+
+            <v-window-item value="charts" class="overflow-y-auto ">
+              <ChartList :range="chartRange" />
+            </v-window-item>
+
+            <v-window-item value="packets">
+              <v-card>
+                <PacketList :time="currentTime"/>
+              </v-card>
+            </v-window-item>
+          </v-window>
+        </v-container>
+
+        <v-container v-else class="ma-0 w-screen h-100">
+          <v-row class="h-100">
+
+            <v-col class="pa-3 pr-1" cols="4">
+              <v-row class="w-100 pb-4 ma-0">
+                <FlightMap :time="currentTime"/>
+              </v-row>
+            </v-col>
+
+            <v-col class="pa-3 pr-1 overflow-y-auto h-100" cols="4">
+              <v-card>
+                <ChartList :range="chartRange" />
+              </v-card>
+            </v-col>
+
+            <v-col class="overflow-y-auto h-100 pb-16" cols="4" >
+              <v-card>
+                <PacketList :time="currentTime"/>
+              </v-card>
+            </v-col>
+
+          </v-row>
+        </v-container>
+
+      </keep-alive>
 
     </v-main>
 
@@ -51,6 +81,7 @@
 import { reactive, ref, onMounted, inject, provide, computed,
          getCurrentInstance, watch, shallowRef, triggerRef} from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useDisplay } from "vuetify";
 import axios from 'axios'
 import { Flight, System, api } from '../library/api'
 import { DataStore } from '../library/datastore'
@@ -79,6 +110,9 @@ const route = useRoute()
 const router = useRouter()
 
 const instance = getCurrentInstance()
+
+const display = useDisplay()
+const tab = ref(null)
 
 const events = computed(() =>
   datastore.value &&
@@ -136,12 +170,6 @@ const onChangeChartRange = (range) => {
 </script>
 
 <style>
-#graphics-panel {
-  width: calc(100% - 320px);
-}
-#packets-panel {
-  width: 320px;
-}
 
 .v-main>.v-container {
   max-width: 100vw;

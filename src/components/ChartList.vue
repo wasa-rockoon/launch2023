@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, ref, inject, Ref, defineProps, ShallowRef } from 'vue'
+import { watch, ref, inject, Ref, defineProps, ShallowRef, onMounted, } from 'vue'
 import {
   Chart as ChartJS,
   Title,
@@ -37,8 +37,8 @@ const maxPoints = 100
 
 const charts = ref([])
 
-watch(datastore, () => {
-  if (!datastore.value) return []
+const update = () => {
+  if (!datastore.value) return;
 
   charts.value = settings.charts.map(config => {
     return {
@@ -101,9 +101,15 @@ watch(datastore, () => {
         parsing: false,
         normalized: true,
         spanGaps: true,
+        responsive: true,
       },
     }
   })
-})
+
+}
+
+watch(datastore, update())
+
+onMounted(update);
 
 </script>

@@ -113,13 +113,13 @@ export const packetFormats : {[id: string] : any} = {
         },
         timeout: 10.0,
     },
-    'H': {
-        name: 'Air',
+    'a': {
+        name: 'Atomsphere',
         entries: {
             'T': {
                 name: 'Temperature',
                 unit: '℃',
-                datatype: 'float32',
+                datatype: 'float16',
                 warning: (t: number) =>
                     (t > 40 && 'Too hot') || (t < 10 && 'Too cold'),
             },
@@ -146,6 +146,7 @@ export const packetFormats : {[id: string] : any} = {
     'r': {
         name: 'Recovery',
         entries: {
+            'B': { name: 'Battery', datatype: 'float16', unit: 'V' },
             'O': {
                 name: 'Longitude',
                 unit: '°',
@@ -208,16 +209,15 @@ export const packetList = [
 
 export const charts = [
     {
-        title: 'Altitude',
-        y: [['R', 'H', 'A'], ['R', 'P', 'H']],
+        title: 'Launcher Altitude',
+        y: [[LAUNCHER, 'r', 'H'], [LAUNCHER, 'r', 'h']],
         yLabel: 'Altitude [m]',
     },
     {
-        title: 'Accelaraion',
-        y: [['R', 'A', 'A', 0], ['R', 'A', 'A', 1], ['R', 'A', 'A', 2]],
-        yLabel: 'Accelaration [m/s²]',
+        title: 'Rocket Altitude',
+        y: [[ROCKET, 'r', 'H'], [ROCKET, 'r', 'h']],
+        yLabel: 'Altitude [m]',
     },
-
 ]
 
 export const mapPaths = [
@@ -225,6 +225,15 @@ export const mapPaths = [
         from: ROCKET,
         name: 'Rocket',
         id: 'P',
+        lat: 'A',
+        lon: 'O',
+        color: '#4FC3F7',
+        markerColor: 'white',
+    },
+    {
+        from: LAUNCHER,
+        name: 'Launcher',
+        id: 'r',
         lat: 'A',
         lon: 'O',
         color: '#4FC3F7',
