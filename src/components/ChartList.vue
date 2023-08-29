@@ -1,10 +1,12 @@
 <template>
-  <v-card v-for="(chart, i) in charts" :key="i" class="w-100">
-    <v-card-item class="pb-0">{{chart.config.title}}</v-card-item>
-    <div v-if="chart.data" class="w-100">
-      <Scatter :data="chart.data" :options="chart.options"
-               class="pa-3 pt-0"/>
-    </div>
+  <v-card>
+    <v-card v-for="(chart, i) in charts" :key="i" class="w-100">
+      <v-card-item class="pb-0">{{chart.config.title}}</v-card-item>
+      <div v-if="chart.data" class="w-100">
+        <Scatter :data="chart.data" :options="chart.options"
+                 class="pa-3 pt-0"/>
+      </div>
+    </v-card>
   </v-card>
 </template>
 
@@ -57,10 +59,12 @@ const update = () => {
                                             maxPoints)
           const values = dataseries.getValues(type, index)
           for (let i = 0; i < times.length; i++) {
+            if (format.validate && !format.validate(values[i])) continue;
             data.push({x: times[i], y: values[i]})
           }
           let name = format?.name
           if (format?.index) name += ` (${format.index[index]})`
+
           return {
             label: name,
             data: data,
@@ -108,7 +112,7 @@ const update = () => {
 
 }
 
-watch(datastore, update())
+watch(datastore, update)
 
 onMounted(update);
 

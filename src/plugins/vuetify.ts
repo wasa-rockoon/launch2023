@@ -12,7 +12,7 @@ const customTheme = {
         background: '#121212',
         surface: '#303030',
         'primary-darken-1': '#00FF00',
-        secondary: '#0000FF',
+        secondary: '#808080',
         'secondary-darken-1': '#FF0000',
         info: '#29b6f6',
         success: '#66bb6a',

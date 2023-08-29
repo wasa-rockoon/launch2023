@@ -144,7 +144,7 @@ class API {
 type PacketCallback =
     (packets: {packet: Packet, time: Date, source: string }[]) => void
 
-const MAX_UPDATE_PER_SECOND = 20
+const MAX_UPDATE_PER_SECOND = 1
 
 class Connection {
     private socket?: WebSocket

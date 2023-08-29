@@ -17,7 +17,8 @@
         </vue-slider>
       </v-col>
       <v-col id="timeline-control">
-        <v-btn-toggle v-model="toggle" divided variant="outlined" color="primary">
+        <v-btn-toggle v-model="toggle" divided variant="outlined"
+                      color="primary">
           <v-btn icon="mdi-skip-backward"></v-btn>
           <v-btn v-if="!playing" icon="mdi-play"></v-btn>
           <v-btn v-if="playing" icon="mdi-pause"></v-btn>

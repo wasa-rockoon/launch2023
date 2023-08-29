@@ -30,20 +30,6 @@
           </VueDatePicker>
         </div>
 
-        <div class="my-5">
-          Video 1
-          <v-text-field v-model="videos[0].url" label="URL"></v-text-field>
-          <VueDatePicker v-model="videos[0].startTime" enable-seconds dark>
-          </VueDatePicker>
-        </div>
-
-        <div class="my-5">
-          Video 2
-          <v-text-field v-model="videos[1].url" label="URL"></v-text-field>
-          <VueDatePicker v-model="videos[1].startTime" enable-seconds dark>
-          </VueDatePicker>
-        </div>
-
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="primary" type="submit">

@@ -10,10 +10,11 @@
 
     <LoginModal :system="system" v-on:login="onLogin" />
 
-    <template v-slot:extension v-if="display.smAndDown.value" >
+    <template v-slot:extension v-if="display.xs.value" >
       <v-tabs v-model="tab" fixed-tabs class="w-100">
         <v-tab value="map">Map</v-tab>
         <v-tab value="charts">Charts</v-tab>
+        <v-tab value="status">Status</v-tab>
         <v-tab value="packets">Packets</v-tab>
       </v-tabs>
     </template>
@@ -21,48 +22,51 @@
     </v-app-bar>
     <v-main v-if="flight" class="h-100 overflow-hidden" >
       <keep-alive class="h-100">
-        <v-container v-if="display.smAndDown.value" class="h-100 pa-0 pb-16">
+        <v-container v-if="display.xs.value" class="h-100 pa-0 pb-16">
 
-          <v-window v-model="tab" class="overflow-y-auto h-100 pa-3">
+          <v-window v-model="tab" class="overflow-y-auto h-100 pa-2">
             <v-window-item value="map">
-              <v-row class="w-100 pb-4 ma-0">
-                <FlightMap :time="currentTime"/>
-              </v-row>
+              <FlightMap :time="currentTime"/>
             </v-window-item>
-
             <v-window-item value="charts" class="overflow-y-auto ">
               <ChartList :range="chartRange" />
             </v-window-item>
-
+            <v-window-item value="status">
+              <SanityCheck :time="currentTime"/>
+            </v-window-item>
             <v-window-item value="packets">
-              <v-card>
-                <PacketList :time="currentTime"/>
-              </v-card>
+              <PacketList :time="currentTime"/>
             </v-window-item>
           </v-window>
         </v-container>
 
+        <v-container v-else-if="display.smAndDown.value">
+          <v-row class="h-100">
+            <v-col class="pa-2 pr-1 overflow-y-auto h-100 pb-16" cols="6">
+              <FlightMap :time="currentTime" class="mb-3" />
+              <ChartList :range="chartRange" />
+            </v-col>
+            <v-col class="pa-2 overflow-y-auto h-100 pb-16" cols="6" >
+              <SanityCheck :time="currentTime"/>
+              <PacketList :time="currentTime"/>
+            </v-col>
+          </v-row>
+        </v-container>
+
         <v-container v-else class="ma-0 w-screen h-100">
           <v-row class="h-100">
-
-            <v-col class="pa-3 pr-1" cols="4">
-              <v-row class="w-100 pb-4 ma-0">
-                <FlightMap :time="currentTime"/>
-              </v-row>
+            <v-col class="pa-2 pr-1 overflow-y-auto " cols="3">
+              <FlightMap :time="currentTime"/>
             </v-col>
-
-            <v-col class="pa-3 pr-1 overflow-y-auto h-100" cols="4">
-              <v-card>
-                <ChartList :range="chartRange" />
-              </v-card>
+            <v-col class="pa-2 pr-1 overflow-y-auto h-100" cols="3">
+              <ChartList :range="chartRange" />
             </v-col>
-
-            <v-col class="overflow-y-auto h-100 pb-16" cols="4" >
-              <v-card>
-                <PacketList :time="currentTime"/>
-              </v-card>
+            <v-col class="pa-2 pr-1 overflow-y-auto h-100 pb-16" cols="3" >
+              <SanityCheck :time="currentTime"/>
             </v-col>
-
+            <v-col class="pa-2 overflow-y-auto h-100 pb-16" cols="3" >
+              <PacketList :time="currentTime"/>
+            </v-col>
           </v-row>
         </v-container>
 
@@ -90,6 +94,7 @@ import LoginModal from '../components/LoginModal'
 import FlightSettings from '../components/FlightSettings'
 import FlightTimeline from '../components/FlightTimeline'
 import PacketList from '../components/PacketList'
+import SanityCheck from '../components/SanityCheck'
 import ChartList from '../components/ChartList'
 import FlightMap from '../components/FlightMap'
 import VideoPlayer from '../components/VideoPlayer'

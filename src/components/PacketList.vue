@@ -1,23 +1,21 @@
 <template>
-  <v-card v-for="(list, i) in packets" :key="i">
+  <v-card v-for="(list, i) in packets" :key="i" class="mb-3">
     <v-card-item>
       <template v-slot:prepend>
-        <v-icon v-if="list.data.some(p => !p.packet)" icon="mdi-help-circle">
-        </v-icon>
+        <v-icon v-if="list.data.some(p => !(list.optionals.includes(p.id)) && !p.packet)"
+                icon="mdi-help" color="error"></v-icon>
         <v-icon v-else-if="list.data.some(error)" color="error"
                 icon="mdi-alert-circle"></v-icon>
-        <v-icon v-else-if="list.data.some(warning)" color="warning"
+        <v-icon v-else-if="list.data.some(warning)"
+                color="warning"
                 icon="mdi-alert"></v-icon>
         <v-icon v-else-if="list.data.some(timeout)" color="warning"
                 icon="mdi-clock-alert-outline"></v-icon>
         <v-icon v-else icon="mdi-check" color="primary"></v-icon>
       </template>
 
-      <v-card-title>{{list.name}}</v-card-title>
+      <v-card-title class="mr-10 text-wrap">{{list.name}}</v-card-title>
 
-      <template v-slot:append>
-        <v-btn density="compact" icon="mdi-dots-vertical"></v-btn>
-      </template>
     </v-card-item>
     <v-card-text class="pa-0">
       <v-list v-model:opened="open[list.from]">
@@ -26,7 +24,9 @@
           <template v-slot:activator="{ props }">
             <v-list-item v-bind="props">
               <template v-slot:prepend>
-                <v-icon v-if="!p.packet" icon="mdi-help-circle"></v-icon>
+                <v-icon v-if="!(list.optionals.includes(p.id)) && !p.packet"
+                        icon="mdi-help" color="error"></v-icon>
+                <v-icon v-else-if="!p.packet" icon="mdi-help"></v-icon>
                 <v-icon v-else-if="error(p)" color="error"
                         icon="mdi-alert-circle"></v-icon>
                 <v-icon v-else-if="warning(p)" color="warning"
@@ -58,7 +58,8 @@
                     <td class="text-left">{{ entry.title }}</td>
                     <td v-if="entry.error" class="text-right text-error">
                       {{ entry.value }}</td>
-                    <td v-else-if="entry.warning" class="text-right text-warning">
+                    <td v-else-if="entry.warning"
+                        class="text-right text-warning">
                       {{ entry.value }}</td>
                     <td v-else class="text-right">{{ entry.value }}</td>
                   </tr>
@@ -97,7 +98,8 @@ const packets = computed(() => {
     const data = list.ids.map(id =>
       datastore.value.getBy(list.from, id)?.at(props.time ?? new Date())
     ).filter(p => p)
-    return { data: data, from: list.from, name: list.name }
+    return { data: data, from: list.from, name: list.name,
+             optionals: list.optionals || [] }
   })
 })
 
@@ -137,8 +139,8 @@ const packetEntries = (format: any, packet: Packet) => {
       entries.push({
         title: entry.type,
         value: entry.payload.int32,
-        error: "Unknown entry",
-        warning: null,
+        error: null,
+        warning: "Unknown entry",
       })
     }
   })
@@ -153,19 +155,22 @@ const timeout = (p: PacketInfo) => {
 }
 
 const error = (p: PacketInfo) => {
+  if (!p.format || !p.packet) return false
   if (p.format.error && p.format.error(p.packet)) return true
   return p.packet.entries.some(entry => {
     const f = p.format.entries[entry.type]
-    if (entry.type != 't' && !f) return true
     return f && f.error && f.error(entry.format(f))
   })
 }
 
 
 const warning = (p: PacketInfo) => {
+  if (!p.packet) return false
+  if (!p.format) return true
   if (p.format.warning && p.format.warning(p.packet)) return true
   return p.packet.entries.some(entry => {
     const f = p.format.entries[entry.type]
+    if (entry.type != 't' && !f) return true
     return f && f.warning && f.warning(entry.format(f))
   })
 }

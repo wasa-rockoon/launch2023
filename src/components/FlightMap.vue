@@ -131,8 +131,10 @@ const handleOrientation = orientation => {
 }
 
 const clicked = () => {
-  DeviceOrientationEvent.requestPermission()
-  window.addEventListener("deviceorientation", handleOrientation, true);
+  if (window.DeviceOrientationEvent) {
+    window.DeviceOrientationEvent.requestPermission()
+    window.addEventListener("deviceorientation", handleOrientation, true);
+  }
 }
 
 const nothing = () => {}
