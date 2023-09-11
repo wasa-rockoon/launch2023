@@ -104,6 +104,9 @@ const process = (dotPos: number) => {
 let prevTimestamp = null
 let liveT = null
 
+let frame_count = 0
+let last_log_date = new Date()
+
 const liveTimeline = (timestamp) => {
   if (prevTimestamp) {
     if (playing.value) {
@@ -119,6 +122,15 @@ const liveTimeline = (timestamp) => {
     if (currentT.value > max.value) sliderRef.value.setValue(max.value)
   }
   prevTimestamp = timestamp
+
+  if (new Date() - last_log_date > 1000) {
+    const fps = frame_count * 1000.0 / (new Date() - last_log_date)
+    console.log('fps: ', fps)
+    frame_count = 0
+    last_log_date = new Date()
+  }
+
+  frame_count++;
 
   requestAnimationFrame(liveTimeline)
 }

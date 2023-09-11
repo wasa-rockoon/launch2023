@@ -2,7 +2,9 @@
   <v-card v-for="(unit, i) in units" :key="i" class="mb-3">
     <v-card-item>
       <template v-slot:prepend>
-        <v-icon v-if="unit.modules.some(m => !m.bits)"
+        <v-icon v-if="unit.timeout" color="error"
+                icon="mdi-clock-alert-outline"></v-icon>
+        <v-icon v-else-if="unit.modules.some(m => !m.bits)"
                 icon="mdi-help" color="error"></v-icon>
         <v-icon v-else-if="unit.modules.some(m => !m.sanity)" color="error"
                 icon="mdi-alert-circle"></v-icon>
@@ -32,17 +34,12 @@
               </template>
               <v-list-item-title>{{module.title}}</v-list-item-title>
               <v-list-item-subtitle v-if="module.bits">
-                {{module.node}}
+                [{{module.node}}]
+                Error #{{module.error_count}} ({{module.error_code}})
               </v-list-item-subtitle>
               <v-list-item-subtitle v-else>N/A</v-list-item-subtitle>
             </v-list-item>
           </template>
-
-          <div>
-            <v-chip class="ma-2" label v-if="module.error">
-              Error Count: {{module.error_count}} ({{module.error_code}})
-            </v-chip>
-          </div>
 
           <span v-for="(bit, i) in module.bits" :key="i">
             <v-chip v-if="bit.error" color="error" class="ma-1" >
@@ -103,11 +100,17 @@ const units = computed(() => {
         })
       }
     })
+    const sanity_timeout = !sanity.t ||
+      datastore.value.time2t(props.time) - sanity.t > unit.timeout
+    const error_timeout = !error.t ||
+      datastore.value.time2t(props.time) - error.t > unit.timeout
+
     return {
       from: unit.from,
       name: unit.name,
       sanity: sanity,
-      modules: modules
+      modules: modules,
+      timeout: unit.timeout && (sanity_timeout || error_timeout),
     }
   })
 })

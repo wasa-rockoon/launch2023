@@ -66,18 +66,20 @@ export const packetFormats : {[id: string] : any} = {
         entries: {
             'P': { name: 'Vpp', datatype: 'int16', unit: 'V', scale: 0.001 },
             'B': { name: 'Battery 1', datatype: 'int16', unit: 'V',
-                   scale: 0.001 },
+                   scale: 0.001, optional: true },
             'b': { name: 'Battery 2', datatype: 'int16', unit: 'V',
-                   scale: 0.001 },
+                   scale: 0.001, optional: true },
             'C': { name: 'Vcc', datatype: 'int16', unit: 'V', scale: 0.001 },
             'D': { name: 'Vdd', datatype: 'int16', unit: 'V', scale: 0.001 },
             'c': { name: 'Vcc', datatype: 'int16', unit: 'A', scale: 0.001 },
             'd': { name: 'Vdd', datatype: 'int16', unit: 'A', scale: 0.001 },
             'U': { name: 'Rocket Umbilical',
                    enum: ['Not Connected', 'Connected'],
+                   optional: true,
                  },
             'S': { name: 'Rocket Supply',
                    enum: ['Not supplying', 'Supplying'],
+                   optional: true,
                  },
         },
         timeout: 30.0,
@@ -111,7 +113,7 @@ export const packetFormats : {[id: string] : any} = {
                    format: formatDB},
             'C': { name: 'Laucher Received', datatype: 'uint32' },
             'c': { name: 'Rocket Received', datatype: 'uint32' },
-            'S': { name: 'Laucher Sent', datatype: 'uint32' },
+            'S': { name: 'Laucher Sent', datatype: 'uint32', optional: true },
         },
         timeout: 10.0,
     },
@@ -181,6 +183,7 @@ export const packetFormats : {[id: string] : any} = {
                    validate: (h: number) => (-1000 < h && h < 50000)
                  },
             'R': { name: 'Ascent Rate', unit: 'm/s', datatype: 'float16' },
+            'r': { name: 'Rocket state', datatype: 'uint32' },
         },
         timeout: 30.0,
     },
@@ -211,8 +214,8 @@ export const packetFormats : {[id: string] : any} = {
             'M': { name: 'Launch Mode',
                    enum: ['No Launch', 'Allowed to Launch']
                  },
-            'c': { name: 'Command Count', datatype: 'uint32' },
-            'C': { name: 'Command RSSI', unit: 'dB', datatype: 'uint8',
+            'C': { name: 'Command Count', datatype: 'uint32' },
+            'r': { name: 'Command RSSI', unit: 'dB', datatype: 'uint8',
                    format: formatDB,
                  },
         },
@@ -237,14 +240,13 @@ export const packetFormats : {[id: string] : any} = {
 
 export const packetList = [
     {
-        from: LAUNCHER,
-        name: 'Launcher Telemetry',
-        ids: ['r', 's', 'S'],
-        optionals: ['S']
-    },
-    {
         from: ROCKET,
         name: 'Rocket Telemetry',
+        ids: ['r'],
+    },
+    {
+        from: LAUNCHER,
+        name: 'Launcher Telemetry',
         ids: ['r', 's', 'S'],
         optionals: ['S']
     },
@@ -264,13 +266,34 @@ export const packetList = [
 
 export const errors = [
     {
+        from: ROCKET,
+        name: 'Rocket Errors',
+        modules: [
+            {
+                name: 'C',
+                title: 'Communication',
+                bits: ['Bus', 'LoRa', 'TWELITE' ]
+            },
+            {
+                name: 'P',
+                title: 'GNSS',
+                bits: ['Bus', 'GNSS Receiver', 'GNSS Location']
+            },
+            {
+                name: 'L',
+                title: 'Logger',
+                bits: ['Bus', 'SD Card']
+            },
+        ],
+        timeout: 30,
+    },
+    {
         from: LAUNCHER,
         name: 'Launcher Errors',
         modules: [
             {
                 name: 'B',
-                title: 'Battery Power A',
-                index: 0,
+                title: 'Battery (Launcher)',
                 bits: ['Bus',
                        'Battery Temperature',
                        'Vpp Voltage',
@@ -283,9 +306,8 @@ export const errors = [
                       ]
             },
             {
-                name: 'B',
-                index: 1,
-                title: 'Battery Power B',
+                name: 'b',
+                title: 'Battery (Float)',
                 bits: ['Bus',
                        'Battery Temperature',
                        'Vpp Voltage',
@@ -312,64 +334,83 @@ export const errors = [
                       ]
             },
             {
-                name: 'I',
+                name: 'N',
                 title: 'INS',
                 bits: ['Bus',
                        'GNSS Receiver',
-                       'IMU Sensor',
+                       'GNSS Location',
                        'Pressure Sensor',
+                       'IMU Sensor',
                        'Temperature',
                       ]
             },
-        ]
+        ],
+        timeout: 30,
     },
-    {
-        from: ROCKET,
-        name: 'Rocket Errors',
-        modules: [],
-    }
 ]
 
 export const charts = [
     {
-        title: 'Launcher Altitude',
-        y: [[LAUNCHER, 'r', 'H'], [LAUNCHER, 'r', 'h']],
-        yLabel: 'Altitude [m]',
-    },
-    {
         title: 'Rocket Altitude',
-        y: [[ROCKET, 'r', 'H'], [ROCKET, 'r', 'h']],
+        y: [{ from: ROCKET, id: 'r', type: 'H', name: 'GPS'},
+            { from: ROCKET, id: 'r', type: 'h', name: 'Pressure' },
+           ],
         yLabel: 'Altitude [m]',
     },
     {
-        title: 'Pressure',
-        y: [[ROCKET, 's', 'P'], [LAUNCHER, 's', 'P']],
+        title: 'Launcher Altitude',
+        y: [{ from: LAUNCHER, id: 'r', type: 'H', name: 'GPS'},
+            { from: LAUNCHER, id: 'r', type: 'h', name: 'Pressure' },
+           ],
+        yLabel: 'Altitude [m]',
+    },
+    {
+        title: 'Atmospheric Pressure',
+        y: [{ from: ROCKET, id: 's', type: 'P', name: 'Rocket'},
+            { from: LAUNCHER, id: 's', type: 'P', name: 'Launcher'},
+           ],
         yLabel: 'Pressure [Pa]',
     },
     {
-        title: 'Launcher Temperature',
-        y: [[LAUNCHER, 's', 'T'], [LAUNCHER, 's', 'I']],
+        title: 'Rocket Temperature',
+        y: [{ from: ROCKET, id: 's', type: 'T', name: 'Ambient'},
+            { from: ROCKET, id: 's', type: 'I', name: 'Interiour'},
+           ],
         yLabel: 'Temperature [℃]',
     },
     {
-        title: 'LoRa',
-        y: [[GS1, 'R', 'R'], [GS1, 'R', 'r'],
-            [GS2, 'R', 'R'], [GS2, 'R', 'r'],
+        title: 'Launcher Temperature',
+        y: [{ from: LAUNCHER, id: 's', type: 'T', name: 'Ambient'},
+            { from: LAUNCHER, id: 's', type: 'I', name: 'Interiour'},
+           ],
+        yLabel: 'Temperature [℃]',
+    },
+    {
+        title: 'LoRa from Rocket',
+        y: [ { from: GS1, id: 'R', type: 'r', name: 'GS1'},
+             { from: GS2, id: 'R', type: 'r', name: 'GS2'},
            ],
         yLabel: 'RSSI [dB]',
     },
-
+    {
+        title: 'LoRa from Launcher',
+        y: [ { from: GS1, id: 'R', type: 'R', name: 'GS1'},
+             { from: GS2, id: 'R', type: 'R', name: 'GS2'},
+           ],
+        yLabel: 'RSSI [dB]',
+    },
 ]
 
 export const mapPaths = [
     {
         from: ROCKET,
         name: 'Rocket',
-        id: 'P',
+        id: 'r',
         lat: 'A',
         lon: 'O',
-        color: '#4FC3F7',
-        markerColor: 'white',
+        alt: 'h',
+        color: 'cyan',
+        markerColor: 'cyan',
     },
     {
         from: LAUNCHER,
@@ -377,8 +418,9 @@ export const mapPaths = [
         id: 'r',
         lat: 'A',
         lon: 'O',
-        color: '#4FC3F7',
-        markerColor: 'white',
+        alt: 'h',
+        color: 'magenta',
+        markerColor: 'magenta',
     },
     {
         from: GS1,
@@ -386,6 +428,7 @@ export const mapPaths = [
         id: 'P',
         lat: 'A',
         lon: 'O',
+        alt: 'h',
         color: 'white',
         markerColor: 'white',
     },
@@ -395,6 +438,7 @@ export const mapPaths = [
         id: 'P',
         lat: 'A',
         lon: 'O',
+        alt: 'h',
         color: 'white',
         markerColor: 'white',
     },

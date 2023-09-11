@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, ref, inject, Ref, defineProps, ShallowRef, onMounted, } from 'vue'
+import { watch, ref, inject, Ref, defineProps, ShallowRef, shallowRef, triggerRef, onMounted, computed, reactive } from 'vue'
 import {
   Chart as ChartJS,
   Title,
@@ -35,39 +35,25 @@ const datastore = inject<ShallowRef<DataStore>>('datastore')
 
 const props = defineProps(['range'])
 
-const maxPoints = 100
+const maxPoints = 1000
 
-const charts = ref([])
+const chartsValue = computed(() => charts.value)
 
-const update = () => {
-  if (!datastore.value) return;
-
-  charts.value = settings.charts.map(config => {
+const charts = shallowRef(
+  settings.charts.map(config => {
     return {
       config: config,
       data: {
         datasets: config.y.map(y => {
-          const from = y[0]
-          const id = y[1]
-          const type = y[2]
-          const index = y[3] ?? 0
-          const format = settings.packetFormats[id]?.entries[type]
-          const dataseries = datastore.value.getBy(from, id, props.range?.min,
-                                                   props.range.max, maxPoints)
-          const data = []
-          const times = dataseries.getTimes(props.range?.min, props.range.max,
-                                            maxPoints)
-          const values = dataseries.getValues(type, index)
-          for (let i = 0; i < times.length; i++) {
-            if (format.validate && !format.validate(values[i])) continue;
-            data.push({x: times[i], y: values[i]})
-          }
-          let name = format?.name
-          if (format?.index) name += ` (${format.index[index]})`
+          const format = settings.packetFormats[y.id]?.entries[y.type]
+          let name = y.name
+          if (format?.index) name += ` (${format.index[y.index ?? 0]})`
 
           return {
             label: name,
-            data: data,
+            format: format,
+            lastUpdateTime: props.range.min,
+            data: [],
             showLine: true,
             fill: false,
             pointRadius: 0,
@@ -109,7 +95,40 @@ const update = () => {
       },
     }
   })
+)
 
+const update = () => {
+  if (!datastore.value) return
+
+  const newCharts = []
+
+  for (let chart of charts.value) {
+    const newChart = { data: {datasets: []}, config: chart.config }
+    chart.config.y.forEach((y, i) => {
+      const dataset = chart.data.datasets[i]
+
+      if (dataset.data.length > maxPoints) {
+        dataset.lastUpdateTime = undefined
+        dataset.data = []
+      }
+
+      const dataseries = datastore.value.getBy(y.from, y.id);
+      const tv = dataseries.getValues(
+        y.type, y.index ?? 0, dataset.lastUpdateTime, props.range.max,
+        maxPoints / 2)
+      for (let n = 0; n < tv.times.length; n++) {
+        if (dataset.format.validate && !dataset.format.validate(tv.values[n]))
+          continue;
+        dataset.data.push({x: tv.times[n], y: tv.values[n]})
+      }
+      dataset.lastUpdateTime = tv.times[tv.times.length - 1]
+      newChart.data.datasets.push(dataset)
+    })
+
+    newCharts.push(newChart)
+  }
+  // console.log(chartsValue.value)
+  charts.value = newCharts
 }
 
 watch(datastore, update)

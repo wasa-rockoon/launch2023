@@ -90,8 +90,8 @@ watch(datastore, () => {
 
   paths.value = settings.mapPaths.flatMap(path => {
     const ds = datastore.value.getBy(path.from, path.id)
-    const lats = ds.getValues(path.lat)
-    const lons = ds.getValues(path.lon)
+    const lats = ds.getValues(path.lat).values
+    const lons = ds.getValues(path.lon).values
     if (lats.length == 0 || lons.length == 0) return []
     return [{
       latlons: lats.flatMap((l, i) => (l && lons[i] && [[l, lons[i]]]) || []),
@@ -114,28 +114,16 @@ watchEffect(() => {
 })
 
 let location_timer;
-
-
 onMounted(() => {
   location_timer = setInterval(() => {
     navigator.geolocation.getCurrentPosition(location => {
       deviceLocation.value = location.coords
     })
-  }, 1000);
+  }, 10000);
 })
 onUnmounted(() => {
   clearInterval(location_timer);
 })
-
-const handleOrientation = orientation => {
-}
-
-const clicked = () => {
-  if (window.DeviceOrientationEvent) {
-    window.DeviceOrientationEvent.requestPermission()
-    window.addEventListener("deviceorientation", handleOrientation, true);
-  }
-}
 
 const nothing = () => {}
 

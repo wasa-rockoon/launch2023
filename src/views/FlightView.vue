@@ -26,6 +26,7 @@
 
           <v-window v-model="tab" class="overflow-y-auto h-100 pa-2">
             <v-window-item value="map">
+              <TargetIndicator :time="currentTime"/>
               <FlightMap :time="currentTime"/>
             </v-window-item>
             <v-window-item value="charts" class="overflow-y-auto ">
@@ -43,6 +44,7 @@
         <v-container v-else-if="display.smAndDown.value">
           <v-row class="h-100">
             <v-col class="pa-2 pr-1 overflow-y-auto h-100 pb-16" cols="6">
+              <TargetIndicator :time="currentTime"/>
               <FlightMap :time="currentTime" class="mb-3" />
               <ChartList :range="chartRange" />
             </v-col>
@@ -56,6 +58,7 @@
         <v-container v-else class="ma-0 w-screen h-100">
           <v-row class="h-100">
             <v-col class="pa-2 pr-1 overflow-y-auto " cols="3">
+              <TargetIndicator :time="currentTime"/>
               <FlightMap :time="currentTime"/>
             </v-col>
             <v-col class="pa-2 pr-1 overflow-y-auto h-100" cols="3">
@@ -98,6 +101,7 @@ import SanityCheck from '../components/SanityCheck'
 import ChartList from '../components/ChartList'
 import FlightMap from '../components/FlightMap'
 import VideoPlayer from '../components/VideoPlayer'
+import TargetIndicator from '../components/TargetIndicator.vue'
 
 const datastore = shallowRef<DataStore | undefined>(undefined)
 
@@ -149,7 +153,7 @@ onBeforeRouteLeave((to, from) => {
 })
 
 const onReceive = (packets: {packet: Packet, time: Date, source: string }[]) => {
-  console.log('received', packets.length)
+  console.log('received', packets.length, packets)
   datastore.value.addPackets(packets)
   triggerRef(datastore)
 }

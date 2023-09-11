@@ -2,21 +2,22 @@
   <v-card v-for="(list, i) in packets" :key="i" class="mb-3">
     <v-card-item>
       <template v-slot:prepend>
-        <v-icon v-if="list.data.some(p => !(list.optionals.includes(p.id)) && !p.packet)"
-                icon="mdi-help" color="error"></v-icon>
+        <v-icon v-if="list.data.some(timeout)" color="error"
+                icon="mdi-clock-alert-outline"></v-icon>
         <v-icon v-else-if="list.data.some(error)" color="error"
                 icon="mdi-alert-circle"></v-icon>
+        <v-icon v-else-if="list.data.some(p => !(list.optionals.includes(p.id)) && !p.packet)"
+                icon="mdi-help" color="error"></v-icon>
         <v-icon v-else-if="list.data.some(warning)"
                 color="warning"
                 icon="mdi-alert"></v-icon>
-        <v-icon v-else-if="list.data.some(timeout)" color="warning"
-                icon="mdi-clock-alert-outline"></v-icon>
         <v-icon v-else icon="mdi-check" color="primary"></v-icon>
       </template>
 
       <v-card-title class="mr-10 text-wrap">{{list.name}}</v-card-title>
 
     </v-card-item>
+
     <v-card-text class="pa-0">
       <v-list v-model:opened="open[list.from]">
         <v-list-group v-for="p in list.data" :key="p.id" :value="p.id">
@@ -27,12 +28,12 @@
                 <v-icon v-if="!(list.optionals.includes(p.id)) && !p.packet"
                         icon="mdi-help" color="error"></v-icon>
                 <v-icon v-else-if="!p.packet" icon="mdi-help"></v-icon>
+                <v-icon v-else-if="timeout(p)" color="error"
+                        icon="mdi-clock-alert-outline"></v-icon>
                 <v-icon v-else-if="error(p)" color="error"
                         icon="mdi-alert-circle"></v-icon>
                 <v-icon v-else-if="warning(p)" color="warning"
                         icon="mdi-alert"></v-icon>
-                <v-icon v-else-if="timeout(p)" color="warning"
-                        icon="mdi-clock-alert-outline"></v-icon>
                 <v-icon v-else icon="mdi-check" color="primary"></v-icon>
               </template>
               <v-list-item-title v-if="p.format">{{p.format.name}}
@@ -57,7 +58,7 @@
                   <tr v-bind="(entry.error || entry.warning) && props">
                     <td class="text-left">{{ entry.title }}</td>
                     <td v-if="entry.error" class="text-right text-error">
-                      {{ entry.value }}</td>
+                      {{ entry.value || 'No Value' }}</td>
                     <td v-else-if="entry.warning"
                         class="text-right text-warning">
                       {{ entry.value }}</td>
@@ -92,6 +93,9 @@ settings.packetList.forEach(list => {
 
 const open = ref(initialOpen)
 
+let timer;
+
+
 const packets = computed(() => {
   if (!datastore.value) return []
   return settings.packetList.map(list => {
@@ -113,29 +117,31 @@ const packetEntries = (format: any, packet: Packet) => {
   const entries = []
   let index = 0;
   let prevType = ''
-  packet.entries.forEach((entry, n) => {
-    if (n == packet.entries.length - 1 && entry.type == "t") return
 
-    if (entry.type == prevType) index++
-    else index = 0
-    prevType = entry.type
-
-    const f = format?.entries[entry.type]
-    if (f) {
+  for (let type in format.entries) {
+    const f = format.entries[type]
+    for (let i in f.index || [0]) {
       let title = f.name
       if (f.index) title += ` (${f.index[index]})`
       if (f.unit) title += ` [${f.unit}]`
 
-      const value = entry.format(f)
+      const entry = packet.get(type, i)
+      const value = entry && entry.format(f)
+
+      if (!value && f.optional) continue
 
       entries.push({
         title: title,
-        value: value,
-        error: f.error && f.error(value),
+        value: entry && entry.format(f),
+        error: (f.error && f.error(value)) || (!f.optional && !entry && "No Value"),
         warning: f.warning && f.warning(value),
       })
     }
-    else {
+  }
+
+  packet.entries.forEach((entry, n) => {
+    const f = format?.entries[entry.type]
+    if (!f) {
       entries.push({
         title: entry.type,
         value: entry.payload.int32,
@@ -160,6 +166,8 @@ const error = (p: PacketInfo) => {
   return p.packet.entries.some(entry => {
     const f = p.format.entries[entry.type]
     return f && f.error && f.error(entry.format(f))
+  }) || Object.keys(p.format.entries).some(type => {
+    return !p.format.entries[type].optional && !p.packet.get(type);
   })
 }
 

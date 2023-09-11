@@ -212,25 +212,26 @@ export class DataSeries {
             this.searchIndex(this.datastore.t2time(t_max).getTime()))
         if (!max_index || max_index < 0) max_index = this.times.length - 1
 
-        const step = 1
-
-        const times = this.times.slice(min_index, max_index)
-        // const times = []
-        // for (let i = min_index; i < max_index; i += step) {
-        //     times.push(this.times[i])
-        // }
-
-
         this.cursor = cursor
 
-        return this.times
+        const step = maxPoints ? (max_index - min_index) / maxPoints : 1
+
+        console.log(step)
+
+        const times = []
+        for (let i = min_index; i < max_index; i += step) {
+            times.push(this.times[i])
+        }
+        return times
     }
 
     getValues(type: number, index: number = 0, t_min?: number, t_max?: number,
-              maxPoints?: number): number[] {
+              maxPoints?: number): { times: number[], values: number[] } {
         const cursor = this.cursor
 
-        if (!this.values[type] || !this.values[type][index]) return []
+        if (this.times.length == 0 || !this.values[type] ||
+            !this.values[type][index])
+            return { times: [], values: [] }
 
         let min_index = (t_min &&
             this.searchIndex(this.datastore.t2time(t_min).getTime()))
@@ -240,18 +241,24 @@ export class DataSeries {
             this.searchIndex(this.datastore.t2time(t_max).getTime()))
         if (!max_index || max_index < 0) max_index = this.times.length - 1
 
-        const step = 1
-
-        const values = this.values[type][index].slice(min_index, max_index)
-
-        // const values = []
-        // for (let i = min_index; i < max_index; i += step) {
-        //     values.push(this.values[type][index][i])
-        // }
-
         this.cursor = cursor
 
-        return values
+        const step = maxPoints ?
+            Math.ceil((max_index - min_index) / maxPoints) : 1
+        const valuesOf = this.values[type][index]
+
+        const times = []
+        const values = []
+        for (let i = min_index; i < max_index;) {
+            if (this.times[i] == undefined || valuesOf[i] == undefined) {
+                i++;
+                continue;
+            }
+            times.push(this.times[i])
+            values.push(valuesOf[i])
+            i += step;
+        }
+        return { times: times, values: values }
     }
 
     addPackets(packets: { packet: Packet, unixTime: number, source: string }[]) {
